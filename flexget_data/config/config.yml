@@ -1,0 +1,92 @@
+############ Init #############
+web_server: yes
+variables: secrets.yml
+######## scedules 설정 ########
+schedules:
+  # Download Tasks
+  - tasks: 'download_*'
+    interval:
+      hours: 1  # weeks, days, hours, minutes
+
+######## templates 설정 ########
+templates:
+# qbittorrent 전송용 설정
+  anchors:
+    _qbittorrent-settings: &qbittorrent-settings
+      host: qbittorrent
+      port: 8088
+      username: yourtorrentusername
+      password: yourtorrentpass
+
+# Global Settings 
+  global:
+    no_entries_ok: yes
+    pathscrub: windows            # 파일 이름을 윈도우 형식으로 설정 (windows가 가장 엄격)
+    free_space:
+      path: "/{? folder.root ?}"  # secrets.yml 에서 설정한 다운로드 폴더가 있는 Root 폴더
+      space: 5000                 # 5G 여유공간이 있어야 다운로드 진행
+
+    regexp:
+      reject:
+        - (s|d)ub(s|bed)?\b: {from: title}    # subbed(영상 자체 자막), dubbed(더빙), etc 제외
+        - \b3-?D\b: {from: title}             # 3D 제외
+        - \btrailer\b: {from: title}          # 트레일러 제외
+        - \bWEBSCR\b: {from: title}           # WEBSCR 제외 (화질구지)
+        - \bTS\b: {from: title}               # TS, CAM 버전 제외 (화질구지)
+        - \bCam\b: {from: title}
+
+    manipulate:
+      - title:
+          replace:
+          # JTBC, tvn, Olive, Mnet, 채널A 등 제거 (ex. [JTBC] 아는 형님 -> 아는 형님)
+            regexp: '^\[[^\]]*\][^a-z0-9]'
+            format: ''
+    
+######## RSS 주소 설정 ########
+# Korea ENT template
+  kent_template:
+    include: 
+      - input/kent.yml
+      - want/kent.yml
+    verify_ssl_certificates: no
+
+# Korea Drama template
+  kdrama_template:
+    include: 
+      - input/kdrama.yml
+      - want/kdrama.yml
+    verify_ssl_certificates: no
+    #all_series: yes
+
+# 저장 폴더 및 파일이름 변경 설정
+  qbittorrent-kent:
+    qbittorrent:
+      <<: *qbittorrent-settings
+      path: "/{? folder.root ?}{? folder.kent ?}"
+
+  qbittorrent-kdrama:
+    qbittorrent:
+      <<: *qbittorrent-settings
+      path: "/{? folder.root ?}{? folder.kdrama ?}"
+
+  disable-seen-retry:
+    disable:
+      - seen
+      - seen_info_hash
+      - retry_failed
+      
+################################
+tasks:
+  download_kent_manual:
+    priority: 10
+    template:
+      - disable-seen-retry
+      - kent_template
+      - qbittorrent-kent
+
+  download_kdrama_manual:
+    priority: 10
+    template:
+      - disable-seen-retry
+      - kdrama_template
+      - qbittorrent-kdrama

@@ -1,0 +1,46 @@
+version: '3.7'
+#
+#
+services:
+  qbittorrent:
+    image: 'linuxserver/qbittorrent'
+    container_name: 'qbittorrent'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ${DOCKER_ROOT}/qbittorrent_data/config:/config
+      - '/500GB_SSD:/500GB_SSD'
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Asia/Seoul
+      - WEBUI_PORT=8088
+    ports:
+      - '6881:6881'
+      - '6881:6881/udp'
+      - '8088:8088'
+#
+#
+  flexget:
+    image: 'wiserain/flexget'
+    container_name: 'flexget'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - '5050:5050'
+    volumes:
+      - ${DOCKER_ROOT}/flexget_data/config:/config
+      - '/500GB_SSD/AutoDownload:/500GB_SSD/AutoDownload'
+    environment:
+      - FG_WEBUI_PASSWD=$FLEXGETPASSWD
+      - FG_LOG_LEVEL=info
+      - FG_PLUGINS=write_magnet
+      - PGID=0
+      - PUID=0
+      - TZ=Asia/Seoul
+    links:
+      - qbittorrent:qbittorrent
+#
+#

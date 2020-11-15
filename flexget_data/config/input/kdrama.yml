@@ -1,0 +1,2 @@
+inputs:
+  - rss: { url: 'https://RSS 주소', silent: yes }
